@@ -1,0 +1,51 @@
+---
+- name: Build iOS Simulator app on macOS and emit artifact paths
+  hosts: mac
+  gather_facts: false
+  vars:
+    remote_base: "{{ remote_base | default('~/tekton-workdir') }}"
+    remote_src: "{{ remote_base }}/src"
+    project_relpath: "{{ project_relpath | default('.') }}"
+    xcode_project: "{{ xcode_project | default('hello-world.xcodeproj') }}"
+    scheme: "{{ scheme | default('hello-world') }}"
+    destination: "{{ destination | default('platform=iOS Simulator,name=iPhone 16e') }}"
+
+  tasks:
+    - name: Show Xcode version
+      shell: "xcodebuild -version"
+      changed_when: false
+
+    - name: Build (Simulator, no signing) and write result bundle
+      shell: >
+        set -euo pipefail
+        mkdir -p "{{ remote_base }}/out"
+        xcodebuild
+        -project "{{ xcode_project }}"
+        -scheme "{{ scheme }}"
+        -destination '{{ destination }}'
+        CODE_SIGNING_ALLOWED=NO
+        CODE_SIGNING_REQUIRED=NO
+        CODE_SIGNING_IDENTITY=""
+        -resultBundlePath "{{ remote_base }}/out/{{ scheme }}.xcresult"
+        build
+      args:
+        chdir: "{{ remote_src }}/{{ project_relpath }}"
+
+    - name: Find built .app under DerivedData (iphonesimulator)
+      shell: >
+        set -euo pipefail
+        APP_PATH="$(find "$HOME/Library/Developer/Xcode/DerivedData" -type d -name "*.app" \
+          | grep -E "/Build/Products/.*-iphonesimulator/" \
+          | head -n 1 || true)"
+        if [ -z "$APP_PATH" ]; then
+          echo "ERROR: Could not locate .app under DerivedData."
+          exit 2
+        fi
+        echo "$APP_PATH"
+      register: app_path
+
+    - name: Print artifact paths (machine readable for Tekton parsing)
+      shell: |
+        echo "APP_PATH={{ app_path.stdout }}"
+        echo "XCRESULT_PATH={{ remote_base }}/out/{{ scheme }}.xcresult"
+      changed_when: false
