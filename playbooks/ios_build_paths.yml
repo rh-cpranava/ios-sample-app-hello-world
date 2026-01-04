@@ -15,11 +15,19 @@
       ansible.builtin.command: xcodebuild -version
       changed_when: false
 
+    - name: "Delete location {{ remote_base }}/out"
+      ansible.builtin.file:
+        path: "{{ remote_base }}/out"
+        state: absent
+
+    - name: "Recreate location {{ remote_base }}/out"
+      ansible.builtin.file:
+        path: "{{ remote_base }}/out"
+        state: directory
+
     - name: Build (Simulator, no signing) and write result bundle
       ansible.builtin.shell: |
         set -euo pipefail
-        rm -rf "{{ remote_base }}/out"
-        mkdir -p "{{ remote_base }}/out"
         xcodebuild \
           -project "{{ xcode_project }}" \
           -scheme "{{ scheme }}" \
