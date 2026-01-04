@@ -67,7 +67,7 @@
     - name: Set artifact vars
       ansible.builtin.set_fact:
         artifact_app_path: "{{ app_path.stdout }}"
-        artifact_xcresult_path: "{{ home_out.stdout }}/tekton-dir/out/{{ scheme }}.xcresult"
+        artifact_xcresult_path: "{{ home_out.stdout }}/tekton-workdir/out/{{ scheme }}.xcresult"
 
     - name: Print artifact paths (machine readable for Tekton parsing)
       ansible.builtin.debug:
