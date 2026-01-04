@@ -1,9 +1,9 @@
 ---
 - name: Build iOS Simulator app on macOS and emit artifact paths
   hosts: mac
-  gather_facts: false
+  gather_facts: true
   vars:
-    remote_base: "{{ remote_base | default('~/tekton-workdir') }}"
+    remote_base: "{{ remote_base | default(ansible_env.HOME ~ '/tekton-workdir') }}"
     remote_src: "{{ remote_base }}/src"
     project_relpath: "{{ project_relpath | default('.') }}"
     xcode_project: "{{ xcode_project | default('hello-world.xcodeproj') }}"
