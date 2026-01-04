@@ -18,8 +18,8 @@
     - name: Build (Simulator, no signing) and write result bundle
       ansible.builtin.shell: |
         set -euo pipefail
+        rm -rf "{{ remote_base }}/out"
         mkdir -p "{{ remote_base }}/out"
-        rm -rf "{{ remote_base }}/out/{{ scheme }}.xcresult"
         xcodebuild \
           -project "{{ xcode_project }}" \
           -scheme "{{ scheme }}" \
