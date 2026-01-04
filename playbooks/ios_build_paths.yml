@@ -12,40 +12,51 @@
 
   tasks:
     - name: Show Xcode version
-      shell: "xcodebuild -version"
+      ansible.builtin.command: xcodebuild -version
       changed_when: false
 
     - name: Build (Simulator, no signing) and write result bundle
-      shell: >
+      ansible.builtin.shell: |
         set -euo pipefail
         mkdir -p "{{ remote_base }}/out"
-        xcodebuild
-        -project "{{ xcode_project }}"
-        -scheme "{{ scheme }}"
-        -destination '{{ destination }}'
-        CODE_SIGNING_ALLOWED=NO
-        CODE_SIGNING_REQUIRED=NO
-        CODE_SIGNING_IDENTITY=""
-        -resultBundlePath "{{ remote_base }}/out/{{ scheme }}.xcresult"
-        build
+        xcodebuild \
+          -project "{{ xcode_project }}" \
+          -scheme "{{ scheme }}" \
+          -destination '{{ destination }}' \
+          CODE_SIGNING_ALLOWED=NO \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_IDENTITY="" \
+          -resultBundlePath "{{ remote_base }}/out/{{ scheme }}.xcresult" \
+          build
       args:
         chdir: "{{ remote_src }}/{{ project_relpath }}"
+        executable: /bin/bash
 
     - name: Find built .app under DerivedData (iphonesimulator)
-      shell: |
+      ansible.builtin.shell: |
         set -euo pipefail
         APP_PATH="$(find "$HOME/Library/Developer/Xcode/DerivedData" -type d -name "*.app" \
           | grep -E "/Build/Products/.*-iphonesimulator/" \
           | head -n 1 || true)"
+
         if [ -z "$APP_PATH" ]; then
-          echo "ERROR: Could not locate .app under DerivedData."
+          echo "ERROR: Could not locate .app under DerivedData." >&2
           exit 2
         fi
+
         echo "$APP_PATH"
+      args:
+        executable: /bin/bash
       register: app_path
+      changed_when: false
+
+    - name: Set artifact vars
+      ansible.builtin.set_fact:
+        artifact_app_path: "{{ app_path.stdout }}"
+        artifact_xcresult_path: "{{ remote_base }}/out/{{ scheme }}.xcresult"
 
     - name: Print artifact paths (machine readable for Tekton parsing)
-      shell: |
-        echo "APP_PATH={{ app_path.stdout }}"
-        echo "XCRESULT_PATH={{ remote_base }}/out/{{ scheme }}.xcresult"
-      changed_when: false
+      ansible.builtin.debug:
+        msg:
+          - "APP_PATH={{ artifact_app_path }}"
+          - "XCRESULT_PATH={{ artifact_xcresult_path }}"
