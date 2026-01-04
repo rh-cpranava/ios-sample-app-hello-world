@@ -19,6 +19,7 @@
       ansible.builtin.shell: |
         set -euo pipefail
         mkdir -p "{{ remote_base }}/out"
+        rm -rf "{{ remote_base }}/out/{{ scheme }}.xcresult"
         xcodebuild \
           -project "{{ xcode_project }}" \
           -scheme "{{ scheme }}" \
